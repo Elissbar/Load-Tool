@@ -16,7 +16,7 @@ class ApiClient:
         # self.load = Load()
 
     def send_files(self, file):
-        sleep(2)
+        sleep(5)
         payload = {'force': 'true', 'description': self.description}
         headers = {'X-Auth-Token': self.token}
         data = {"file": open(file, 'rb')}

@@ -21,7 +21,7 @@ class SMTPClient:
         self.server = smtplib.SMTP(self.stand, self.port)
 
     def send_letter(self, files):
-        sleep(2)
+        sleep(5)
         links = [self.fake.url() for _ in range(random.randint(2, 7))]
         print('Files: ', len(files), '\n', 'Links: ', len(links))
 
@@ -39,9 +39,9 @@ class SMTPClient:
             part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file)
             msg.attach(part)
 
-        self.server.sendmail(msg['From'], msg['To'], msg.as_string())
-        # for file in files:
-        #     os.remove(file)
+        print('SMTP response', self.server.sendmail(msg['From'], msg['To'], msg.as_string()))
+        for file in files:
+            os.remove(file)
 
     def execute_send_files(self):
         # with Pool(self.threads) as p:

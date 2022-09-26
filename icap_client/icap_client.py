@@ -42,12 +42,12 @@ class ICAPClient:
         # self.client_socket.connect((stand, 13440))
 
     def send_files(self, filename):
-        time.sleep(2)
+        time.sleep(5)
 
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((self.stand, 13440))
+        client_socket.connect((self.stand, 1344))
 
-        print('Filename is:', filename)
+        # print('Filename is:', filename)
         with open(filename, "rb") as f:
             data = f.read()
             self.content = self.content.replace(b"{CONTENTLEN}", hex(len(data)).encode())
@@ -56,7 +56,7 @@ class ICAPClient:
             self.content = self.content.replace(b"{ContentLength}", str(len(self.content.rsplit(b"\r\n\r\n", 2)[1])).encode())
 
         # print('Content is: ', self.content)
-        client_socket.send(self.content)
+        print('ICAP send response', client_socket.send(self.content))
         os.remove(filename)
         client_socket.close()
 

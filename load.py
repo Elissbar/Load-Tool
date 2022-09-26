@@ -1,6 +1,7 @@
 import sys
 import os
 import subprocess
+import shutil
 from random import randint
 from time import time, sleep, strftime, gmtime
 from threading import Thread
@@ -16,7 +17,7 @@ class Load:
         _, self.stand = sys.argv
         self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
-        self.x_auth_token = 'f719284d-e2e7-4030-b342-3bbce631f3a9'
+        self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
 
     def generate_files(self, files_count=200, folder=None):
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder]) # python RandomFiles_12.py elf,sh 2 \
@@ -24,14 +25,26 @@ class Load:
         return os.path.join(self.root_dir, folder, 'RandomFiles')
 
     def api_client(self):
-        files_folder = self.generate_files(files_count=2, folder='api_client')
-        files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
+        iteration = 0
+        start_time = time()
+        while time() - start_time < 60:
+            print('API iteration is:', iteration)
+            iteration += 1
 
-        api_client = ApiClient(self.stand, self.x_auth_token, 1, files)
-        api_client.execute_send_files()
+            files_folder = self.generate_files(files_count=1, folder='api_client')
+            files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
+
+            api_client = ApiClient(self.stand, self.x_auth_token, 1, files)
+            api_client.execute_send_files()
 
     def smtp_client(self):
-            files = self.generate_files(files_count=200, folder='smtp_client')
+        iteration = 0
+        start_time = time()
+        while time() - start_time < 60:
+            print('SMTP iteration is:', iteration)
+            iteration += 1
+
+            files = self.generate_files(files_count=1, folder='smtp_client')
             files = [os.path.join(files, file) for file in os.listdir(files)]
 
             new_files = []
@@ -44,30 +57,41 @@ class Load:
             smtp_client.execute_send_files()
 
     def icap_client(self): # Не работает
-        files = self.generate_files(files_count=200, folder='icap_client')
-        files = [os.path.join(files, file) for file in os.listdir(files)]
-        # print('Files:', files)
-
+        iteration = 0
         start_time = time()
-        icap_client = ICAPClient(self.stand, threads=1, files=files, host='192.192.192.192')
-        icap_client.execute_send_files()
-        # print('Finish time is:', time() - start_time)
+        while time() - start_time < 60:
+            print('ICAP iteration is:', iteration)
+            iteration += 1
+
+            files = self.generate_files(files_count=1, folder='icap_client')
+            files = [os.path.join(files, file) for file in os.listdir(files)]
+            # print('Files:', files)
+
+            start_time = time()
+            icap_client = ICAPClient(self.stand, threads=1, files=files, host='192.192.192.192')
+            icap_client.execute_send_files()
+            print('Finish time is:', time() - start_time)
 
     def run_load(self):
         api = Thread(target=self.api_client)
         smtp = Thread(target=self.smtp_client)
         icap = Thread(target=self.icap_client)
 
-        api.run()
-        smtp.run()
-        icap.run()
+        api.start()
+        smtp.start()
+        icap.start()
+
+        api.join()
+        smtp.join()
+        icap.join()
+
+        shutil.rmtree('/home/eduard/scripts/api_client/RandomFiles')
+        shutil.rmtree('/home/eduard/scripts/smtp_client/RandomFiles')
+        shutil.rmtree('/home/eduard/scripts/icap_client/RandomFiles')
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         raise RuntimeError(f'Нужно указать стенд: python3 {sys.argv[0]} domain_or_ip')
-    # print(Load().stand)
-    Load().generate_files(folder='api_client')
-    # Load().api_client()
-    # Load().icap_client()
-    # Load().smtp_client()
+
+    Load().run_load()
