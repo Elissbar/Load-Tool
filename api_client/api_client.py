@@ -3,19 +3,21 @@ import os
 from time import time, sleep, strftime, gmtime
 from multiprocessing import Pool
 # from load import Load
+from client import Client
 
 
-class ApiClient:
+class APIClient(Client):
 
-    def __init__(self, stand, token, threads, files, description=f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'):
-        self.stand = stand
-        self.description = description
-        self.token = token
-        self.threads = threads
-        self.files = files
+    def __init__(self, *args):
+        super().__init__(*args)
+        # self.stand = stand
+        self.description = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
+        # self.token = token
+        # self.threads = threads
+        # self.files = files
         # self.load = Load()
 
-    def send_files(self, file):
+    def send(self, file):
         sleep(5)
         payload = {'force': 'true', 'description': self.description}
         headers = {'X-Auth-Token': self.token}
@@ -31,13 +33,6 @@ class ApiClient:
         os.remove(file)
         return response.status_code
 
-    def execute_send_files(self):
-        with Pool(self.threads) as p:
-
-            # while len(os.listdir('/home/eduard/scripts/api_client/RandomFiles')):
-            #
-            #     if len(os.listdir('/home/eduard/scripts/api_client/RandomFiles')) < 10:
-            #         print('Files count is less 10')
-            #         self.load.generate_files(files_count=2, folder='/home/eduard/scripts/api_client/')
-
-            p.map(self.send_files, self.files)
+    # def execute_send_files(self):
+    #     with Pool(self.threads) as p:
+    #         p.map(self.send_files, self.files)

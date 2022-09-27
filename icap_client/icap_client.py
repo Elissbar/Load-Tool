@@ -2,6 +2,7 @@ import socket
 import os
 import time
 from multiprocessing import Pool
+from client import Client
 
 content = b"""RESPMOD icap://athena.local/respmod ICAP/1.0
 Host: 10.10.64.102
@@ -29,19 +30,20 @@ content-disposition: attachment; filename="{FILENAME}"
 """.replace(b"\n", b"\r\n")
 
 
-class ICAPClient:
+class ICAPClient(Client):
 
-    def __init__(self, stand, threads, files, host="2.2.2.2"):
-        self.stand = stand
-        self.host = host
+    def __init__(self, *args):
+        super().__init__(*args)
+        # self.stand = stand
+        # self.host = host
         # print('HOST: ', self.host)
-        self.threads = threads
-        self.files = files
+        # self.threads = threads
+        # self.files = files
         self.content = content.replace(b"{CLIENTIP}", self.host.encode())
         # self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.client_socket.connect((stand, 13440))
 
-    def send_files(self, filename):
+    def send(self, filename):
         time.sleep(5)
 
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,11 +62,8 @@ class ICAPClient:
         os.remove(filename)
         client_socket.close()
 
-    def execute_send_files(self):
-        # for file in self.files:
-        #     self.send_files(file)
-        with Pool(self.threads) as p:
-            p.map(self.send_files, self.files)
-        # self.client_socket.close()
+    # def execute_send_files(self):
+        # with Pool(self.threads) as p:
+        #     p.map(self.send_files, self.files)
 
 

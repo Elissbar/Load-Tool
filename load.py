@@ -5,7 +5,8 @@ import shutil
 from random import randint
 from time import time, sleep, strftime, gmtime
 from threading import Thread
-from api_client.api_client import ApiClient
+from client import Client
+from api_client.api_client import APIClient
 from icap_client.icap_client import ICAPClient
 from smtp_client.smtp_client import SMTPClient
 
@@ -17,7 +18,8 @@ class Load:
         _, self.stand = sys.argv
         self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
-        self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
+        self.x_auth_token = 'e1f0ec3d-e8a0-44fe-ab2e-07a5d2b2e71c'
+        self.client = Client(self.stand, self.x_auth_token, host='192.192.192.192')
 
     def generate_files(self, files_count=200, folder=None):
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder]) # python RandomFiles_12.py elf,sh 2 \
@@ -34,8 +36,8 @@ class Load:
             files_folder = self.generate_files(files_count=1, folder='api_client')
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
-            api_client = ApiClient(self.stand, self.x_auth_token, 1, files)
-            api_client.execute_send_files()
+            api_client = APIClient(self.stand, self.x_auth_token)
+            api_client.run(files, 1)
 
     def smtp_client(self):
         iteration = 0
@@ -53,8 +55,8 @@ class Load:
                 new_files.append(files[:count])
                 files[:count] = []
 
-            smtp_client = SMTPClient(self.stand, files=new_files, threads=1)
-            smtp_client.execute_send_files()
+            smtp_client = SMTPClient(self.stand, self.x_auth_token)
+            smtp_client.run(new_files, 1)
 
     def icap_client(self): # Не работает
         iteration = 0
@@ -68,8 +70,8 @@ class Load:
             # print('Files:', files)
 
             start_time = time()
-            icap_client = ICAPClient(self.stand, threads=1, files=files, host='192.192.192.192')
-            icap_client.execute_send_files()
+            icap_client = ICAPClient(self.stand, self.x_auth_token)
+            icap_client.run(files, 1)
             print('Finish time is:', time() - start_time)
 
     def run_load(self):
@@ -77,17 +79,17 @@ class Load:
         smtp = Thread(target=self.smtp_client)
         icap = Thread(target=self.icap_client)
 
-        api.start()
+        # api.start()
         smtp.start()
-        icap.start()
+        # icap.start()
 
-        api.join()
+        # api.join()
         smtp.join()
-        icap.join()
+        # icap.join()
 
-        shutil.rmtree('/home/eduard/scripts/api_client/RandomFiles')
+        # shutil.rmtree('/home/eduard/scripts/api_client/RandomFiles')
         shutil.rmtree('/home/eduard/scripts/smtp_client/RandomFiles')
-        shutil.rmtree('/home/eduard/scripts/icap_client/RandomFiles')
+        # shutil.rmtree('/home/eduard/scripts/icap_client/RandomFiles')
 
 
 if __name__ == '__main__':

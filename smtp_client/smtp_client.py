@@ -8,22 +8,24 @@ from time import time, sleep
 from multiprocessing import Pool
 from faker import Faker
 import random
+from client import Client
 
 
-class SMTPClient:
+class SMTPClient(Client):
 
-    def __init__(self, stand, files, threads):
-        self.stand = stand
-        self.files = files
+    def __init__(self, *args):
+        super().__init__(*args)
+        # self.stand = stand
+        # self.files = files
         self.fake = Faker()
-        self.threads = threads
+        # self.threads = threads
         self.port = 25
         self.server = smtplib.SMTP(self.stand, self.port)
 
-    def send_letter(self, files):
+    def send(self, files):
         sleep(5)
         links = [self.fake.url() for _ in range(random.randint(2, 7))]
-        print('Files: ', len(files), '\n', 'Links: ', len(links))
+        print('Files:', len(files), '\n', 'Links:', len(links))
 
         msg = MIMEMultipart()
         msg['From'] = 'smtp_load@avsw.ru'
@@ -43,9 +45,9 @@ class SMTPClient:
         for file in files:
             os.remove(file)
 
-    def execute_send_files(self):
+    # def execute_send_files(self):
         # with Pool(self.threads) as p:
         #     p.map(self.send_letter, self.files)
-        from concurrent import futures
-        with futures.ThreadPoolExecutor(self.threads) as executor:
-            executor.map(self.send_letter, self.files)
+        # from concurrent import futures
+        # with futures.ThreadPoolExecutor(self.threads) as executor:
+        #     executor.map(self.send_letter, self.files)
