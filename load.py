@@ -9,6 +9,8 @@ from client import Client
 from api_client.api_client import APIClient
 from icap_client.icap_client import ICAPClient
 from smtp_client.smtp_client import SMTPClient
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class Load:
@@ -18,8 +20,8 @@ class Load:
         _, self.stand = sys.argv
         self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
-        self.x_auth_token = 'e1f0ec3d-e8a0-44fe-ab2e-07a5d2b2e71c'
-        self.client = Client(self.stand, self.x_auth_token, host='192.192.192.192')
+        self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
+        # self.client = Client(self.stand, self.x_auth_token, host='192.192.192.192')
 
     def generate_files(self, files_count=200, folder=None):
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder]) # python RandomFiles_12.py elf,sh 2 \
@@ -30,7 +32,7 @@ class Load:
         iteration = 0
         start_time = time()
         while time() - start_time < 60:
-            print('API iteration is:', iteration)
+            # print('API iteration is:', iteration)
             iteration += 1
 
             files_folder = self.generate_files(files_count=1, folder='api_client')
@@ -43,7 +45,7 @@ class Load:
         iteration = 0
         start_time = time()
         while time() - start_time < 60:
-            print('SMTP iteration is:', iteration)
+            # print('SMTP iteration is:', iteration)
             iteration += 1
 
             files = self.generate_files(files_count=1, folder='smtp_client')
@@ -62,7 +64,7 @@ class Load:
         iteration = 0
         start_time = time()
         while time() - start_time < 60:
-            print('ICAP iteration is:', iteration)
+            # print('ICAP iteration is:', iteration)
             iteration += 1
 
             files = self.generate_files(files_count=1, folder='icap_client')
@@ -70,9 +72,9 @@ class Load:
             # print('Files:', files)
 
             start_time = time()
-            icap_client = ICAPClient(self.stand, self.x_auth_token)
+            icap_client = ICAPClient(self.stand, self.x_auth_token, '111.111.111.111')
             icap_client.run(files, 1)
-            print('Finish time is:', time() - start_time)
+            # print('Finish time is:', time() - start_time)
 
     def run_load(self):
         api = Thread(target=self.api_client)

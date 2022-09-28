@@ -1,4 +1,15 @@
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
+from threading import current_thread
+
+# thread_name = current_thread().name
+
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(threadName)s'
+)
+
+log = logging.getLogger('Load')
 
 
 class Client:
@@ -10,11 +21,11 @@ class Client:
     def send(self, *args):
         pass
 
-    def run(self, files, threads):
-        # with Pool(threads) as p:
-        #     p.map(self.send, files)
+    def initializer(self, client):
+        logging.debug(f'Client is: {client}')
 
-        # В smtp клиенте не работает с Pool, надо разобраться, либо оставить ThreadPoolExecutor для всех
-        from concurrent import futures
-        with futures.ThreadPoolExecutor(threads) as executor:
+    def run(self, files, threads):
+        client = repr(self).split('.')[2].split(' ')[0]
+        # print('Client is:', client)
+        with ThreadPoolExecutor(max_workers=threads, initializer=self.initializer, initargs=(client, )) as executor:
             executor.map(self.send, files)

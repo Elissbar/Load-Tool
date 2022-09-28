@@ -29,7 +29,7 @@ class APIClient(Client):
             headers=headers,
             data=payload,
             files=data)
-        print(response.status_code)
+        # print(response.status_code)
         os.remove(file)
         return response.status_code
 

@@ -58,7 +58,7 @@ class ICAPClient(Client):
             self.content = self.content.replace(b"{ContentLength}", str(len(self.content.rsplit(b"\r\n\r\n", 2)[1])).encode())
 
         # print('Content is: ', self.content)
-        print('ICAP send response', client_socket.send(self.content))
+        # print('ICAP send response', client_socket.send(self.content))
         os.remove(filename)
         client_socket.close()
 

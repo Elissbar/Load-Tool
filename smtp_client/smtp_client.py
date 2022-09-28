@@ -25,7 +25,7 @@ class SMTPClient(Client):
     def send(self, files):
         sleep(5)
         links = [self.fake.url() for _ in range(random.randint(2, 7))]
-        print('Files:', len(files), '\n', 'Links:', len(links))
+        # print('Files:', len(files), '\n', 'Links:', len(links))
 
         msg = MIMEMultipart()
         msg['From'] = 'smtp_load@avsw.ru'
@@ -41,7 +41,7 @@ class SMTPClient(Client):
             part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file)
             msg.attach(part)
 
-        print('SMTP response', self.server.sendmail(msg['From'], msg['To'], msg.as_string()))
+        # print('SMTP response', self.server.sendmail(msg['From'], msg['To'], msg.as_string()))
         for file in files:
             os.remove(file)
 
