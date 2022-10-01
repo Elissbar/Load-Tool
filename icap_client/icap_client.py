@@ -3,6 +3,7 @@ import os
 import time
 from multiprocessing import Pool
 from client import Client
+import sys
 
 content = b"""RESPMOD icap://athena.local/respmod ICAP/1.0
 Host: 10.10.64.102
@@ -59,6 +60,10 @@ class ICAPClient(Client):
 
         # print('Content is: ', self.content)
         # print('ICAP send response', client_socket.send(self.content))
+        # try:
+        client_socket.send(self.content)
+        # except ConnectionRefusedError:
+        #     sys.exit()
         os.remove(filename)
         client_socket.close()
 
