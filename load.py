@@ -11,7 +11,13 @@ from api_client.api_client import APIClient
 from icap_client.icap_client import ICAPClient
 from smtp_client.smtp_client import SMTPClient
 import warnings
+import logging
 warnings.filterwarnings("ignore")
+
+logging.basicConfig(
+    format='%(asctime)s -- %(message)s -- %(threadName)s',
+    filename='log_file.txt'
+)
 
 
 class Load:
@@ -21,7 +27,7 @@ class Load:
         _, self.stand = sys.argv
         self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
-        self.x_auth_token = '0fd92de1-bc6f-4531-a43c-e859070f3d0f'
+        self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
         self.threads = 2
         # self.client = Client(self.stand, self.x_auth_token, host='192.192.192.192')
 
@@ -33,12 +39,12 @@ class Load:
 
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder]) # python RandomFiles_12.py elf,sh 2 \
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder])
-        return os.path.join(self.root_dir, folder, 'RandomFiles')
+        return os.path.join(self.root_dir, folder)
 
     def api_client(self, folder_name):
         iteration = 0
         start_time = time()
-        parent_folder = os.path.join('api_client', 'RandomFiles', folder_name)
+        parent_folder = os.path.join('api_client', folder_name)
         while time() - start_time < 60:
             # print('API iteration is:', iteration)
             iteration += 1
@@ -51,18 +57,18 @@ class Load:
             for file in files:
                 api_client.send(file)
 
-        shutil.rmtree('/home/eduard/scripts/api_client/RandomFiles')
+        shutil.rmtree(files_folder)
 
     def smtp_client(self, folder_name):
         iteration = 0
         start_time = time()
-        parent_folder = os.path.join('smtp_client', 'RandomFiles', folder_name)
+        parent_folder = os.path.join('smtp_client', folder_name)
         while time() - start_time < 60:
             # print('SMTP iteration is:', iteration)
             iteration += 1
 
-            files = self.generate_files(files_count=1, folder=parent_folder)
-            files = [os.path.join(files, file) for file in os.listdir(files)]
+            files_folder = self.generate_files(files_count=1, folder=parent_folder)
+            files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
             new_files = []
             while files:
@@ -76,18 +82,18 @@ class Load:
                 smtp_client.send(list_files)
             # smtp_client.run(new_files, 1)
 
-        shutil.rmtree('/home/eduard/scripts/smtp_client/RandomFiles')
+        shutil.rmtree(files_folder)
 
     def icap_client(self, folder_name):
         iteration = 0
         start_time = time()
-        parent_folder = os.path.join('icap_client', 'RandomFiles', folder_name)
+        parent_folder = os.path.join('icap_client', folder_name)
         while time() - start_time < 20:
             # print('ICAP iteration is:', iteration)
             iteration += 1
 
-            files = self.generate_files(files_count=1, folder=parent_folder)
-            files = [os.path.join(files, file) for file in os.listdir(files)]
+            files_folder = self.generate_files(files_count=1, folder=parent_folder)
+            files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
             # print('Files:', files)
 
             start_time = time()
@@ -96,13 +102,13 @@ class Load:
                 try:
                     icap_client.send(file)
                 except ConnectionRefusedError:
-                    print('HERE')
-                    shutil.rmtree('/home/eduard/scripts/icap_client/RandomFiles')
+                    # print('HERE')
+                    shutil.rmtree(files_folder)
                     return
             # icap_client.run(files, 1)
             # print('Finish time is:', time() - start_time)
 
-        shutil.rmtree('/home/eduard/scripts/icap_client/RandomFiles')
+        shutil.rmtree(files_folder)
 
     def run_load(self):
         for i in range(self.threads):

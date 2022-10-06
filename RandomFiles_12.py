@@ -716,7 +716,8 @@ if countArg == 3:
     nameDirForGenerateFile = sys.argv[3]
     if nameDirForGenerateFile != "":
         # dirFiles = dirFiles + "/" + nameDirForGenerateFile
-        dirFiles = os.path.join(nameDirForGenerateFile, dirFiles)
+        # dirFiles = os.path.join(nameDirForGenerateFile, dirFiles)
+        dirFiles = os.path.join(nameDirForGenerateFile)
     StartRandomFiles()
 elif countArg == 0:
     flist_of_extensions()
