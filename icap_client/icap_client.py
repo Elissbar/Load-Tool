@@ -48,7 +48,7 @@ class ICAPClient(Client):
         time.sleep(5)
 
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((self.stand, 1344))
+        client_socket.connect((self.stand, self.icap_port))
 
         # print('Filename is:', filename)
         with open(filename, "rb") as f:

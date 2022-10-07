@@ -2,10 +2,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 class Client:
-    def __init__(self, stand, token, host='192.192.192.192'):
+    def __init__(self, stand, token, icap_port, host='192.192.192.192'):
         self.stand = stand
         self.token = token
         self.host = host
+        self.icap_port = icap_port
 
     def send(self, *args):
         pass
