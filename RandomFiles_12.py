@@ -615,7 +615,7 @@ def StartRandomFiles():
 
 
     StartTime = datetime.datetime.today()
-    print("Start at " + StartTime.strftime("%Y-%m-%d %H:%M:%S"))
+    # print("Start at " + StartTime.strftime("%Y-%m-%d %H:%M:%S"))
 
     if not os.path.isdir(dirFiles):
         os.mkdir(dirFiles)
@@ -693,10 +693,10 @@ def StartRandomFiles():
             # count_files += 1
 
     EndTime = datetime.datetime.today()
-    print("End   at " + EndTime.strftime("%Y-%m-%d %H:%M:%S"))
+    # print("End   at " + EndTime.strftime("%Y-%m-%d %H:%M:%S"))
     duration = EndTime - StartTime
-    print("Duration             " + convert_seconds(duration.total_seconds()))
-    print("Files " + str(count_files))
+    # print("Duration             " + convert_seconds(duration.total_seconds()))
+    # print("Files " + str(count_files))
 
 
 # print("123")
@@ -708,7 +708,7 @@ def StartRandomFiles():
 
 # |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 countArg = len(sys.argv) -1
-print ("countArg = " + str(countArg), sys.argv)\
+# print ("countArg = " + str(countArg), sys.argv)\
 
 if countArg == 3:
     list_of_extensions = sys.argv[1].split(",")

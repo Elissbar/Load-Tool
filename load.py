@@ -29,13 +29,14 @@ class Load:
     def __init__(self):
         print(sys.argv)
         self.root_dir = os.path.abspath(os.path.dirname(__file__))
-        _, self.stand = sys.argv
+        _, self.stand = sys.argv[:2]
+        self.duration = int(sys.argv[2]) if len(sys.argv) > 2 else False
+        print('Duration is', self.duration)
         self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
         self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
         self.threads = 2
         self.icap_port = 1344
-        # self.condition = 'True' if len(sys.argv) == 2 else 'time() - start_time < sys.argv[2]'
 
     def generate_files(self, files_count=200, folder=None):
         full_path = os.path.join(self.root_dir, folder)
@@ -66,8 +67,9 @@ class Load:
     def smtp_client(self, folder_name):
         start_time = time()
         parent_folder = os.path.join('smtp_client', folder_name)
-        while time() - start_time < 60:
-        # while self.condition:
+        # while time() - start_time < 60:
+        # if isinstance(self.duration)
+        while self.condition(time(), start_time):
 
             files_folder = self.generate_files(files_count=1, folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
@@ -88,8 +90,13 @@ class Load:
     def icap_client(self, folder_name):
         start_time = time()
         parent_folder = os.path.join('icap_client', folder_name)
-        while time() - start_time < 20:
-        # while eval(self.condition):
+        # while time() - start_time < 20:
+        if isinstance(self.duration, bool):
+            condition = lambda x, y: True
+        elif isinstance(self.duration, int):
+            # condition = f'{time()} - f{start_time} < {self.duration}'
+            condition = lambda x, y: x - y < self.duration
+        while condition(time(), start_time):
 
             files_folder = self.generate_files(files_count=1, folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
@@ -99,13 +106,15 @@ class Load:
             for file in files:
                 try:
                     logging.debug(f'Try to send file to {self.stand} via ICAP. Filename is: {os.path.basename(file)}')
-                    icap_client.send(file)
+                    os.remove(file)
+                    # icap_client.send(file)
                 except ConnectionRefusedError:
                     logging.error(f'ICAP sending error. Stand: {self.stand}. Port: {self.icap_port}')
                     shutil.rmtree(files_folder)
                     return
 
         shutil.rmtree(files_folder)
+        print('Finish time:', time() - start_time)
 
     def run_load(self):
         for i in range(self.threads):
