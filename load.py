@@ -25,17 +25,24 @@ logging.basicConfig(
 
 
 class Load:
+    condition = None
 
     def __init__(self):
         print(sys.argv)
         self.root_dir = os.path.abspath(os.path.dirname(__file__))
         _, self.stand = sys.argv[:2]
         self.duration = int(sys.argv[2]) if len(sys.argv) > 2 else False
-        print('Duration is', self.duration)
+
+        if isinstance(self.duration, bool):
+            self.condition = lambda x, y, z: True
+        elif isinstance(self.duration, int):
+            self.condition = lambda x, y, z: x - y < z
+
         self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
         self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
-        self.threads = 2
+        self.threads = 1
+        print('Threads count:', self.threads)
         self.icap_port = 1344
 
     def generate_files(self, files_count=200, folder=None):
@@ -51,13 +58,12 @@ class Load:
     def api_client(self, folder_name):
         start_time = time()
         parent_folder = os.path.join('api_client', folder_name)
-        while time() - start_time < 60:
-        # while self.condition:
+        while self.condition(time(), start_time, self.duration):
 
             files_folder = self.generate_files(files_count=1, folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
-            api_client = APIClient(self.stand, self.x_auth_token)
+            api_client = APIClient(self.stand, self.x_auth_token, self.icap_port)
             for file in files:
                 logging.debug(f'Send file to {self.stand} via API. Filename is: {os.path.basename(file)}')
                 api_client.send(file)
@@ -80,7 +86,7 @@ class Load:
                 new_files.append(files[:count])
                 files[:count] = []
 
-            smtp_client = SMTPClient(self.stand, self.x_auth_token)
+            smtp_client = SMTPClient(self.stand, self.x_auth_token, self.icap_port)
             for list_files in new_files:
                 logging.debug(f'Send file to {self.stand} via SMTP. List files is: {list_files}')
                 smtp_client.send(list_files)
@@ -124,9 +130,9 @@ class Load:
             smtp = Thread(target=self.smtp_client, args=(smtp_name, ), name=smtp_name)
             icap = Thread(target=self.icap_client, args=(icap_name, ), name=icap_name)
 
-            # api.start()
+            api.start()
             # smtp.start()
-            icap.start()
+            # icap.start()
 
 
 if __name__ == '__main__':
