@@ -1,4 +1,4 @@
-import sys
+from email.policy import default
 import os
 import subprocess
 import shutil
@@ -10,6 +10,7 @@ from icap_client.icap_client import ICAPClient
 from smtp_client.smtp_client import SMTPClient
 import warnings
 import logging
+import argparse
 warnings.filterwarnings("ignore")
 
 
@@ -25,25 +26,28 @@ logging.basicConfig(
 
 
 class Load:
-    condition = None
+    # condition = None
 
-    def __init__(self):
-        print(sys.argv)
+    def __init__(self, args):
         self.root_dir = os.path.abspath(os.path.dirname(__file__))
-        _, self.stand = sys.argv[:2]
-        self.duration = int(sys.argv[2]) if len(sys.argv) > 2 else False
+        self.stand = args.s
+        self.x_auth_token = args.t
+        self.duration = args.d
+        self.condition = lambda x, y, z: True if isinstance(self.duration, bool) else x - y < z
+        self.threads = args.th
+        self.icap_port = args.icap
 
-        if isinstance(self.duration, bool):
-            self.condition = lambda x, y, z: True
-        elif isinstance(self.duration, int):
-            self.condition = lambda x, y, z: x - y < z
+        # if isinstance(self.duration, bool):
+        #     self.condition = lambda x, y, z: True
+        # elif isinstance(self.duration, int):
+        #     self.condition = lambda x, y, z: x - y < z
 
-        self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
-        self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
-        self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
-        self.threads = 1
-        print('Threads count:', self.threads)
-        self.icap_port = 1344
+        # self.start_time = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
+        # self.payload = {'force': 'true', 'description': f'API-Load-{self.start_time}'}
+        # self.x_auth_token = 'ae64b514-8183-4a55-8cf2-000e48fc223e'
+        # self.threads = 1
+        # # print('Threads count:', self.threads)
+        # self.icap_port = 1344
 
     def generate_files(self, files_count=200, folder=None):
         full_path = os.path.join(self.root_dir, folder)
@@ -130,13 +134,23 @@ class Load:
             smtp = Thread(target=self.smtp_client, args=(smtp_name, ), name=smtp_name)
             icap = Thread(target=self.icap_client, args=(icap_name, ), name=icap_name)
 
-            api.start()
+            # api.start()
             # smtp.start()
             # icap.start()
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        raise RuntimeError(f'Нужно указать стенд: python3 {sys.argv[0]} domain_or_ip')
+    description = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', help='Адрес стенда', required=True)
+    parser.add_argument('-t', help='X-Auth-Token токен', required=True)
+    parser.add_argument('-d', help='Длительность нагрузки', default=False)
+    parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
+    parser.add_argument('-icap', help='Порт ICAP', type=int, default=1344)
+    args = parser.parse_args()
+    print('args', args)
+    # if len(sys.argv) == 1:
+    #     raise RuntimeError(f'Нужно указать стенд: python3 {sys.argv[0]} domain_or_ip')
 
-    Load().run_load()
+    Load(args)
+    # Load().run_load()
