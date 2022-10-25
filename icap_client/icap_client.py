@@ -45,7 +45,7 @@ class ICAPClient(Client):
         # self.client_socket.connect((stand, 13440))
 
     def send(self, filename):
-        time.sleep(5)
+        # time.sleep(5)
 
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((self.stand, self.icap_port))

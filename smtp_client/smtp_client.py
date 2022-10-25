@@ -9,6 +9,7 @@ from multiprocessing import Pool
 from faker import Faker
 import random
 from client import Client
+from time import time, sleep, strftime, gmtime
 
 
 class SMTPClient(Client):
@@ -20,17 +21,18 @@ class SMTPClient(Client):
         self.fake = Faker()
         # self.threads = threads
         self.port = 25
+        self.description = f'SMTP-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
         self.server = smtplib.SMTP(self.stand, self.port)
 
     def send(self, files):
-        sleep(5)
+        # sleep(5)
         links = [self.fake.url() for _ in range(random.randint(2, 7))]
         # print('Files:', len(files), '\n', 'Links:', len(links))
 
         msg = MIMEMultipart()
         msg['From'] = 'smtp_load@avsw.ru'
         msg['To'] = 'receiver@avsw.ru'
-        msg['Subject'] = 'Test'
+        msg['Subject'] = self.description
         msg['Message-ID'] = make_msgid()
 
         msg.attach(MIMEText('\n'.join(links)))

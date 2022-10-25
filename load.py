@@ -1,4 +1,3 @@
-from email.policy import default
 import os
 import subprocess
 import shutil
@@ -29,13 +28,15 @@ class Load:
     # condition = None
 
     def __init__(self, args):
+        print('ARGS HERE:', args)
         self.root_dir = os.path.abspath(os.path.dirname(__file__))
         self.stand = args.s
         self.x_auth_token = args.t
-        self.duration = args.d
+        self.duration = int(args.d)
         self.condition = lambda x, y, z: True if isinstance(self.duration, bool) else x - y < z
         self.threads = args.th
         self.icap_port = args.icap
+        self.lag = args.lag
 
         # if isinstance(self.duration, bool):
         #     self.condition = lambda x, y, z: True
@@ -69,8 +70,12 @@ class Load:
 
             api_client = APIClient(self.stand, self.x_auth_token, self.icap_port)
             for file in files:
+                sleep(self.lag)
                 logging.debug(f'Send file to {self.stand} via API. Filename is: {os.path.basename(file)}')
-                api_client.send(file)
+                try:
+                    api_client.send(file)
+                except Exception as e:
+                    logging.error(f'API sending error. Stand: {self.stand}. Token: {self.x_auth_token}')
 
         shutil.rmtree(files_folder)
 
@@ -79,7 +84,7 @@ class Load:
         parent_folder = os.path.join('smtp_client', folder_name)
         # while time() - start_time < 60:
         # if isinstance(self.duration)
-        while self.condition(time(), start_time):
+        while self.condition(time(), start_time, self.duration):
 
             files_folder = self.generate_files(files_count=1, folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
@@ -92,21 +97,19 @@ class Load:
 
             smtp_client = SMTPClient(self.stand, self.x_auth_token, self.icap_port)
             for list_files in new_files:
+                sleep(self.lag)
                 logging.debug(f'Send file to {self.stand} via SMTP. List files is: {list_files}')
-                smtp_client.send(list_files)
+                try:
+                    smtp_client.send(list_files)
+                except Exception as e:
+                    logging.error(f'SMTP sending error. Stand: {self.stand}')
 
         shutil.rmtree(files_folder)
 
     def icap_client(self, folder_name):
         start_time = time()
         parent_folder = os.path.join('icap_client', folder_name)
-        # while time() - start_time < 20:
-        if isinstance(self.duration, bool):
-            condition = lambda x, y: True
-        elif isinstance(self.duration, int):
-            # condition = f'{time()} - f{start_time} < {self.duration}'
-            condition = lambda x, y: x - y < self.duration
-        while condition(time(), start_time):
+        while self.condition(time(), start_time, self.duration):
 
             files_folder = self.generate_files(files_count=1, folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
@@ -114,10 +117,11 @@ class Load:
             start_time = time()
             icap_client = ICAPClient(self.stand, self.x_auth_token, self.icap_port, '192.192.192.192')
             for file in files:
+                sleep(self.lag)
                 try:
                     logging.debug(f'Try to send file to {self.stand} via ICAP. Filename is: {os.path.basename(file)}')
+                    icap_client.send(file)
                     os.remove(file)
-                    # icap_client.send(file)
                 except ConnectionRefusedError:
                     logging.error(f'ICAP sending error. Stand: {self.stand}. Port: {self.icap_port}')
                     shutil.rmtree(files_folder)
@@ -134,9 +138,9 @@ class Load:
             smtp = Thread(target=self.smtp_client, args=(smtp_name, ), name=smtp_name)
             icap = Thread(target=self.icap_client, args=(icap_name, ), name=icap_name)
 
-            # api.start()
-            # smtp.start()
-            # icap.start()
+            api.start()
+            smtp.start()
+            icap.start()
 
 
 if __name__ == '__main__':
@@ -147,10 +151,8 @@ if __name__ == '__main__':
     parser.add_argument('-d', help='Длительность нагрузки', default=False)
     parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     parser.add_argument('-icap', help='Порт ICAP', type=int, default=1344)
+    parser.add_argument('-lag', help='Задержка перед отправкой', type=int, default=0)
     args = parser.parse_args()
-    print('args', args)
-    # if len(sys.argv) == 1:
-    #     raise RuntimeError(f'Нужно указать стенд: python3 {sys.argv[0]} domain_or_ip')
 
-    Load(args)
-    # Load().run_load()
+    # Load(args)
+    Load(args).run_load()
