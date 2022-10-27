@@ -3,6 +3,7 @@ import os
 import time
 from multiprocessing import Pool
 from client import Client
+from time import time, sleep, strftime, gmtime
 import sys
 
 content = b"""RESPMOD icap://athena.local/respmod ICAP/1.0
@@ -12,7 +13,7 @@ X-client-IP: {CLIENTIP}
 user-agent: C-ICAP-Client-Library/0.5.9
 preview: 10240
 
-GET /origin-resource HTTP/1.1
+GET {LINK} HTTP/1.1
 Host: 10.10.64.102
 Accept: text/html, text/plain, image/gif
 Accept-Encoding: gzip, compress
@@ -41,6 +42,7 @@ class ICAPClient(Client):
         # self.threads = threads
         # self.files = files
         self.content = content.replace(b"{CLIENTIP}", self.host.encode())
+        self.description = f'{strftime("%d-%m-%Y %H:%M", gmtime())}'
         # self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.client_socket.connect((stand, 13440))
 
@@ -54,6 +56,7 @@ class ICAPClient(Client):
         with open(filename, "rb") as f:
             data = f.read()
             self.content = self.content.replace(b"{CONTENTLEN}", hex(len(data)).encode())
+            self.content = self.content.replace(b"{LINK}", self.description.encode())
             self.content = self.content.replace(b"{FILENAME}", os.path.basename(filename).encode())
             self.content = self.content.replace(b"{CONTENT}", data)
             self.content = self.content.replace(b"{ContentLength}", str(len(self.content.rsplit(b"\r\n\r\n", 2)[1])).encode())
@@ -64,7 +67,7 @@ class ICAPClient(Client):
         client_socket.send(self.content)
         # except ConnectionRefusedError:
         #     sys.exit()
-        os.remove(filename)
+        # os.remove(filename)
         client_socket.close()
 
     # def execute_send_files(self):
