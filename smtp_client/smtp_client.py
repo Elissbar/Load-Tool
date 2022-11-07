@@ -43,9 +43,10 @@ class SMTPClient(Client):
             part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file)
             msg.attach(part)
 
+        self.server.sendmail(msg['From'], msg['To'], msg.as_string())
         # print('SMTP response', self.server.sendmail(msg['From'], msg['To'], msg.as_string()))
-        for file in files:
-            os.remove(file)
+        # for file in files:
+        #     os.remove(file)
 
     # def execute_send_files(self):
         # with Pool(self.threads) as p:
