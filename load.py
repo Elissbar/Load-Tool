@@ -4,9 +4,9 @@ import shutil
 from random import randint
 from time import time, sleep, strftime, gmtime
 from threading import Thread
-from api_client.api_client import APIClient
-from icap_client.icap_client import ICAPClient
-from smtp_client.smtp_client import SMTPClient
+from api_client.api_client import api_client
+from icap_client.icap_client import icap_client
+from smtp_client.smtp_client import smtp_client
 import smtplib
 import warnings
 import logging
@@ -20,7 +20,6 @@ logging.basicConfig(
     level=logging.INFO,
     handlers=[
         logging.FileHandler('log_file.txt', mode='w'),
-        # logging.StreamHandler()
     ]
 )
 
@@ -31,50 +30,53 @@ class Load:
         self.root_dir = os.path.abspath(os.path.dirname(__file__))
         self.stand = args.s
         self.x_auth_token = args.t
-        self.duration = args.d
+        self.duration = int(args.d * 60)
         self.condition = lambda x, y, z: True if self.duration is False else x - y < z
         self.threads = args.th
         self.icap_port = args.icap
         self.lag = args.lag
         self.types = args.types
+        self.description = f'{strftime("%d-%m-%Y %H:%M", gmtime())}'
+        self.smtp_port = 25
 
     def generate_files(self, files_count=200, folder=None):
         full_path = os.path.join(self.root_dir, folder)
         if not os.path.exists(full_path):
             os.makedirs(full_path)
-            logging.info(f'Create folder: {full_path}')
+            logging.info(f'Создание папки: {full_path}')
 
-        subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder])
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder])
         return os.path.join(self.root_dir, folder)
 
-    def api(self, folder_name):
+    def api(self, thread_name):
         start_time = time()
-        parent_folder = os.path.join('api_client', folder_name)
-        while self.condition(time(), start_time, int(self.duration)):
+        parent_folder = os.path.join('api_client', thread_name)
+        while self.condition(time(), start_time, self.duration):
 
-            files_folder = self.generate_files(files_count=1, folder=parent_folder)
+            files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
-            api_client = APIClient(self.stand, self.x_auth_token, self.icap_port)
             for file in files:
-                if not self.condition(time(), start_time, int(self.duration)):
+                if not self.condition(time(), start_time, self.duration):
                     break
-                logging.info(f'Send file to {self.stand} via API. Filename is: {os.path.basename(file)}')
                 try:
-                    api_client.send(file)
+                    logging.info(f'Отправка файла в {self.stand} по API. Имя файла: {os.path.basename(file)}')
+                    api_client(self.stand, self.x_auth_token, self.description, file)
+                    os.remove(file)
                     sleep(self.lag)
                 except Exception as e:
-                    logging.error(f'API sending error. Stand: {self.stand}. Token: {self.x_auth_token}')
+                    logging.error(
+                        f'Ошибка при отправке по API. Стенд: {self.stand}. Токен: {self.x_auth_token}.\nСообщение об ошибке: {e}'
+                    )
 
         shutil.rmtree(files_folder)
 
-    def smtp(self, folder_name):
+    def smtp(self, thread_name):
         start_time = time()
-        parent_folder = os.path.join('smtp_client', folder_name)
-        while self.condition(time(), start_time, int(self.duration)):
+        parent_folder = os.path.join('smtp_client', thread_name)
+        while self.condition(time(), start_time, int(self.duration * 60)):
 
-            files_folder = self.generate_files(files_count=1, folder=parent_folder)
+            files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
             new_files = []
@@ -83,87 +85,63 @@ class Load:
                 new_files.append(files[:count])
                 files[:count] = []
 
-            smtp_client = SMTPClient(self.stand, self.x_auth_token, self.icap_port)
             for list_files in new_files:
-                if not self.condition(time(), start_time, int(self.duration)):
+                if not self.condition(time(), start_time, int(self.duration * 60)):
                     break
-                logging.info(f'Send file to {self.stand} via SMTP. List files is: {list_files}')
                 try:
-                    smtp_client.send(list_files)
-                    sleep(self.lag)
-                except smtplib.SMTPSenderRefused as e:
-                    logging.error(f'SMTP sending error. Stand: {self.stand}. Error is: {e}')
-                    shutil.rmtree(parent_folder)
-                    return
-                finally:
+                    logging.info(f'Отправка файла в {self.stand} по SMTP. Порт: {self.smtp_port}')
+                    smtp_client(self.stand, self.smtp_port, self.description, list_files)
                     for f in list_files:
                         os.remove(f)
+                    sleep(self.lag)
+                except smtplib.SMTPSenderRefused as e:
+                    logging.error(f'Ошибка при отправке по SMTP. Стенд: {self.stand}. Порт: {self.smtp_port}.\nСообщение об ошибке: {e}')
+                    shutil.rmtree(parent_folder)
+                    return
 
-        # shutil.rmtree(parent_folder)
+        shutil.rmtree(parent_folder)
 
-    def icap(self, folder_name):
+    def icap(self, thread_name):
         start_time = time()
-        parent_folder = os.path.join('icap_client', folder_name)
-        while self.condition(time(), start_time, int(self.duration)):
+        parent_folder = os.path.join('icap_client', thread_name)
+        while self.condition(time(), start_time, int(self.duration * 60)):
 
-            files_folder = self.generate_files(files_count=1, folder=parent_folder)
-            print('files_folder:', files_folder)
+            files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
-            print('files:', files)
 
-            start_time = time()
-            icap_client = ICAPClient(self.stand, self.x_auth_token, self.icap_port, '192.192.192.192')
             for file in files:
-                if not self.condition(time(), start_time, int(self.duration)):
+                if not self.condition(time(), start_time, int(self.duration * 60)):
                     break
                 try:
-                    logging.info(f'Try to send file to {self.stand} via ICAP. Filename is: {os.path.basename(file)}')
-                    icap_client.send(file)
-                    # os.remove(file)
+                    logging.info(f'Отправка файла в {self.stand} по ICAP. Порт: {self.icap_port}')
+                    icap_client(self.stand, self.icap_port, self.description[-5:], file)
+                    os.remove(file)
                     sleep(self.lag)
-                except ConnectionRefusedError:
-                    logging.error(f'ICAP sending error. Stand: {self.stand}. Port: {self.icap_port}')
+                except ConnectionRefusedError as e:
+                    logging.error(f'Ошибка при отправке по ICAP. Стенд: {self.stand}. Port: {self.icap_port}.\nСообщение об ошибке: {e}')
                     shutil.rmtree(files_folder)
                     return
-                finally:
-                    os.remove(file)
-
 
         shutil.rmtree(files_folder)
-        print('Finish time:', time() - start_time)
 
     def run_load(self):
         for i in range(self.threads):
-            # api_name, smtp_name, icap_name = f'API_Client_Thread_{i}', f'SMTP_Client_Thread_{i}', f'ICAP_Client_Thread_{i}'
-            # thread_name = f'Client_Thread_{i}'
-
             for tp in self.types:
-                print(tp)
                 thread_name = f'{tp.upper()}_Client_{i}'
                 new_thread = Thread(target=__class__.__dict__[tp], args=(self, thread_name, ), name=thread_name)
                 new_thread.start()
 
-            # print(__class__.__dict__)
-
-            # api = Thread(target=self.api, args=(api_name, ), name=api_name)
-            # smtp = Thread(target=self.smtp, args=(smtp_name, ), name=smtp_name)
-            # icap = Thread(target=self.icap, args=(icap_name, ), name=icap_name)
-
-            # api.start()
-            # smtp.start()
-            # icap.start()
 
 
 if __name__ == '__main__':
-    description = f'API-Load: {strftime("%d-%m-%Y %H:%M", gmtime())}'
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', help='Адрес стенда', required=True)
-    parser.add_argument('-t', help='X-Auth-Token токен', required=True)
-    parser.add_argument('-d', help='Длительность нагрузки', default=False)
+    parser.add_argument('-t', help='X-Auth-Token', required=True)
+    parser.add_argument('-d', help='Длительность нагрузки в минутах', default=False)
     parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     parser.add_argument('-icap', help='Порт ICAP', type=int, default=1344)
     parser.add_argument('-lag', help='Задержка перед отправкой', type=int, default=0)
-    parser.add_argument('-types', help='Виды нагрузки', default=['api', 'icap', 'smtp'])
+    parser.add_argument('-types', help='Виды нагрузки', nargs='*', default=['api', 'icap', 'smtp'])
     args = parser.parse_args()
 
     Load(args).run_load()

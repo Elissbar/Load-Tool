@@ -1,10 +1,5 @@
 import socket
 import os
-import time
-from multiprocessing import Pool
-from client import Client
-from time import time, sleep, strftime, gmtime
-import sys
 
 content = b"""RESPMOD icap://athena.local/respmod ICAP/1.0
 Host: 10.10.64.102
@@ -32,46 +27,20 @@ content-disposition: attachment; filename="{FILENAME}"
 """.replace(b"\n", b"\r\n")
 
 
-class ICAPClient(Client):
+def icap_client(stand, icap_port, desc, filename, host='192.192.192.192'):
+    global content
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((stand, icap_port))
 
-    def __init__(self, *args):
-        super().__init__(*args)
-        # self.stand = stand
-        # self.host = host
-        # print('HOST: ', self.host)
-        # self.threads = threads
-        # self.files = files
-        self.content = content.replace(b"{CLIENTIP}", self.host.encode())
-        self.description = f'{strftime("%d-%m-%Y %H:%M", gmtime())}'
-        # self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.client_socket.connect((stand, 13440))
+    with open(filename, "rb") as f:
+        data = f.read()
+        content = content.replace(b"{CONTENTLEN}", hex(len(data)).encode())
+        
+    content = content.replace(b"{CLIENTIP}", host.encode())
+    content = content.replace(b"{LINK}", f'{desc}'.encode())
+    content = content.replace(b"{FILENAME}", os.path.basename(filename).encode())
+    content = content.replace(b"{CONTENT}", data)
+    content = content.replace(b"{ContentLength}", str(len(content.rsplit(b"\r\n\r\n", 2)[1])).encode())
 
-    def send(self, filename):
-        # time.sleep(5)
-
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((self.stand, self.icap_port))
-
-        # print('Filename is:', filename)
-        with open(filename, "rb") as f:
-            data = f.read()
-            self.content = self.content.replace(b"{CONTENTLEN}", hex(len(data)).encode())
-            self.content = self.content.replace(b"{LINK}", self.description.encode())
-            self.content = self.content.replace(b"{FILENAME}", os.path.basename(filename).encode())
-            self.content = self.content.replace(b"{CONTENT}", data)
-            self.content = self.content.replace(b"{ContentLength}", str(len(self.content.rsplit(b"\r\n\r\n", 2)[1])).encode())
-
-        # print('Content is: ', self.content)
-        # print('ICAP send response', client_socket.send(self.content))
-        # try:
-        client_socket.send(self.content)
-        # except ConnectionRefusedError:
-        #     sys.exit()
-        # os.remove(filename)
-        client_socket.close()
-
-    # def execute_send_files(self):
-        # with Pool(self.threads) as p:
-        #     p.map(self.send_files, self.files)
-
-
+    client_socket.send(content)
+    client_socket.close()
