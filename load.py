@@ -30,8 +30,8 @@ class Load:
         self.root_dir = os.path.abspath(os.path.dirname(__file__))
         self.stand = args.s
         self.x_auth_token = args.t
-        self.duration = int(args.d * 60)
-        self.condition = lambda x, y, z: True if self.duration is False else x - y < z
+        self.duration = int(args.d) * 60
+        self.condition = lambda x, y, z: True if self.duration == 0 else x - y < z
         self.threads = args.th
         self.icap_port = args.icap
         self.lag = args.lag
@@ -74,7 +74,7 @@ class Load:
     def smtp(self, thread_name):
         start_time = time()
         parent_folder = os.path.join('smtp_client', thread_name)
-        while self.condition(time(), start_time, int(self.duration * 60)):
+        while self.condition(time(), start_time, self.duration):
 
             files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
@@ -86,7 +86,7 @@ class Load:
                 files[:count] = []
 
             for list_files in new_files:
-                if not self.condition(time(), start_time, int(self.duration * 60)):
+                if not self.condition(time(), start_time, self.duration):
                     break
                 try:
                     logging.info(f'Отправка файла в {self.stand} по SMTP. Порт: {self.smtp_port}')
@@ -94,7 +94,7 @@ class Load:
                     for f in list_files:
                         os.remove(f)
                     sleep(self.lag)
-                except smtplib.SMTPSenderRefused as e:
+                except Exception as e:
                     logging.error(f'Ошибка при отправке по SMTP. Стенд: {self.stand}. Порт: {self.smtp_port}.\nСообщение об ошибке: {e}')
                     shutil.rmtree(parent_folder)
                     return
@@ -104,20 +104,20 @@ class Load:
     def icap(self, thread_name):
         start_time = time()
         parent_folder = os.path.join('icap_client', thread_name)
-        while self.condition(time(), start_time, int(self.duration * 60)):
+        while self.condition(time(), start_time, self.duration):
 
             files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
             for file in files:
-                if not self.condition(time(), start_time, int(self.duration * 60)):
+                if not self.condition(time(), start_time, self.duration):
                     break
                 try:
                     logging.info(f'Отправка файла в {self.stand} по ICAP. Порт: {self.icap_port}')
                     icap_client(self.stand, self.icap_port, self.description[-5:], file)
                     os.remove(file)
                     sleep(self.lag)
-                except ConnectionRefusedError as e:
+                except Exception as e:
                     logging.error(f'Ошибка при отправке по ICAP. Стенд: {self.stand}. Port: {self.icap_port}.\nСообщение об ошибке: {e}')
                     shutil.rmtree(files_folder)
                     return

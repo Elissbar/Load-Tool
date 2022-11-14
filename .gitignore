@@ -131,3 +131,4 @@ dmypy.json
 idea/
 RandomFiles/
 log_file.txt
+*_Client_*
