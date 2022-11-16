@@ -2,12 +2,13 @@ import os
 import subprocess
 import shutil
 from random import randint
-from time import time, sleep, strftime, gmtime
+from time import time, sleep, strftime, localtime
 from threading import Thread
-from api_client.api_client import api_client
+from faker import Faker
+import random
+from api_client.api_client import file_send, link_send
 from icap_client.icap_client import icap_client
 from smtp_client.smtp_client import smtp_client
-import smtplib
 import warnings
 import logging
 import argparse
@@ -36,8 +37,9 @@ class Load:
         self.icap_port = args.icap
         self.lag = args.lag
         self.types = args.types
-        self.description = f'{strftime("%d-%m-%Y %H:%M", gmtime())}'
+        self.description = f'{strftime("%d-%m-%Y %H:%M", localtime())}'
         self.smtp_port = 25
+        self.fake = Faker()
 
     def generate_files(self, files_count=200, folder=None):
         full_path = os.path.join(self.root_dir, folder)
@@ -53,7 +55,7 @@ class Load:
         parent_folder = os.path.join('api_client', thread_name)
         while self.condition(time(), start_time, self.duration):
 
-            files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
+            files_folder = self.generate_files(files_count=int(50/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
             for file in files:
@@ -61,7 +63,7 @@ class Load:
                     break
                 try:
                     logging.info(f'Отправка файла в {self.stand} по API. Имя файла: {os.path.basename(file)}')
-                    api_client(self.stand, self.x_auth_token, self.description, file)
+                    file_send(self.stand, self.x_auth_token, self.description, file)
                     os.remove(file)
                     sleep(self.lag)
                 except Exception as e:
@@ -76,8 +78,9 @@ class Load:
         parent_folder = os.path.join('smtp_client', thread_name)
         while self.condition(time(), start_time, self.duration):
 
-            files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
+            files_folder = self.generate_files(files_count=int(50/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
+            links = [self.fake.url() for _ in range(random.randint(2, 7))]
 
             new_files = []
             while files:
@@ -90,7 +93,7 @@ class Load:
                     break
                 try:
                     logging.info(f'Отправка файла в {self.stand} по SMTP. Порт: {self.smtp_port}')
-                    smtp_client(self.stand, self.smtp_port, self.description, list_files)
+                    smtp_client(self.stand, self.smtp_port, self.description, list_files, links)
                     for f in list_files:
                         os.remove(f)
                     sleep(self.lag)
@@ -106,7 +109,7 @@ class Load:
         parent_folder = os.path.join('icap_client', thread_name)
         while self.condition(time(), start_time, self.duration):
 
-            files_folder = self.generate_files(files_count=int(100/self.threads), folder=parent_folder)
+            files_folder = self.generate_files(files_count=int(50/self.threads), folder=parent_folder)
             files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
 
             for file in files:
@@ -123,6 +126,24 @@ class Load:
                     return
 
         shutil.rmtree(files_folder)
+    
+    def link(self, thread_name):
+        start_time = time()
+        while self.condition(time(), start_time, self.duration):
+
+            links = [self.fake.url() for _ in range(random.randint(1, 20))]
+
+            for link in links:
+                if not self.condition(time(), start_time, self.duration):
+                    break
+                try:
+                    logging.info(f'Отправка ссылки в {self.stand} по API. Ссылка: {os.path.basename(link)}')
+                    link_send(self.stand, self.x_auth_token, self.description, link)
+                    sleep(self.lag)
+                except Exception as e:
+                    logging.error(
+                        f'Ошибка при отправке по API. Стенд: {self.stand}. Токен: {self.x_auth_token}.\nСообщение об ошибке: {e}'
+                    )
 
     def run_load(self):
         for i in range(self.threads):
@@ -141,7 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     parser.add_argument('-icap', help='Порт ICAP', type=int, default=1344)
     parser.add_argument('-lag', help='Задержка перед отправкой', type=int, default=0)
-    parser.add_argument('-types', help='Виды нагрузки', nargs='*', default=['api', 'icap', 'smtp'])
+    parser.add_argument('-types', help='Виды нагрузки', nargs='*', default=['api', 'icap', 'smtp', 'link'])
     args = parser.parse_args()
 
     Load(args).run_load()

@@ -37,7 +37,7 @@ def icap_client(stand, icap_port, desc, filename, host='192.192.192.192'):
         content = content.replace(b"{CONTENTLEN}", hex(len(data)).encode())
         
     content = content.replace(b"{CLIENTIP}", host.encode())
-    content = content.replace(b"{LINK}", f'{desc}'.encode())
+    content = content.replace(b"{LINK}", f'/{desc}'.replace(':', '_').encode())
     content = content.replace(b"{FILENAME}", os.path.basename(filename).encode())
     content = content.replace(b"{CONTENT}", data)
     content = content.replace(b"{ContentLength}", str(len(content.rsplit(b"\r\n\r\n", 2)[1])).encode())

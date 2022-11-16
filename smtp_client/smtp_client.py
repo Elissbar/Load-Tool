@@ -4,14 +4,11 @@ from email.mime.text import MIMEText
 from email.utils import make_msgid
 import smtplib
 import os
-from faker import Faker
-import random
 
-fake = Faker()
 
-def smtp_client(stand, port, desc, files):
+def smtp_client(stand, port, desc, files, links):
     server = smtplib.SMTP(stand, port)
-    links = [fake.url() for _ in range(random.randint(2, 7))]
+    # links = [fake.url() for _ in range(random.randint(2, 7))]
 
     msg = MIMEMultipart()
     msg['From'] = 'smtp_load@avsw.ru'
