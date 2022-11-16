@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea/
+idea/
+RandomFiles/
+log_file.txt
+*_Client_*
