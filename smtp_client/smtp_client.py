@@ -6,18 +6,18 @@ import smtplib
 import os
 
 
-def smtp_client(stand, port, desc, files, links):
-    server = smtplib.SMTP(stand, port)
+def smtp_client(**kwargs):
+    server = smtplib.SMTP(kwargs["stand"], kwargs["port"])
     # links = [fake.url() for _ in range(random.randint(2, 7))]
 
     msg = MIMEMultipart()
     msg['From'] = 'smtp_load@avsw.ru'
     msg['To'] = 'receiver@avsw.ru'
-    msg['Subject'] = f'SMTP-Load: {desc}'
+    msg['Subject'] = f'SMTP-Load: {kwargs["desc"]}'
     msg['Message-ID'] = make_msgid()
-    msg.attach(MIMEText('\n'.join(links)))
+    msg.attach(MIMEText('\n'.join(kwargs["links"])))
 
-    for file in files:
+    for file in kwargs["file"]:
         with open(file, 'rb') as fh:
             part = MIMEApplication(fh.read(), Name=os.path.basename(file))
         part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file)
