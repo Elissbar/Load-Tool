@@ -4,7 +4,7 @@ import requests
 def file_send(**kwargs):
     payload = {'force': 'true', 'description': f'API-Load: {kwargs["desc"]}'}
     headers = {'X-Auth-Token': kwargs["token"]}
-    data = {"file": open(kwargs['file'], 'rb')}
+    data = {"file": open(kwargs['item'], 'rb')}
 
     response = requests.post(
         f'https://{kwargs["stand"]}/api/v1/submit/file',
@@ -18,7 +18,7 @@ def file_send(**kwargs):
 def link_send(**kwargs):
 	payload = {
 		"LinkData": {
-        	"Path": kwargs['link']
+        	"Path": kwargs['item']
     	},
 		"MessageData": {
 			"Force": True,
