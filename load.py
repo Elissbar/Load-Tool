@@ -63,38 +63,36 @@ class Load:
 
     def run_client(self, thread_name, client):
         start_time = time()
-        parent_folder = os.path.join(f'{client}_client', thread_name)
         while self.condition(time(), start_time, self.duration):
-            if client in ['api', 'icap', 'smtp']:
+            if client == 'link':
+                items = [self.fake.image_url() for _ in range(50)]
+            else:
+                parent_folder = os.path.join(f'{client}_client', thread_name)
                 files_folder = self.generate_files(files_count=int(50/self.threads), folder=parent_folder)
-                files = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
-
-            if client == 'smtp':
-                new_files = []
-                while files:
-                    count = randint(1, 5)
-                    new_files.append(files[:count])
-                    files[:count] = []
-                items = new_files
-            elif client == 'link':
-                items = [self.fake.url() for _ in range(50)]
-            elif client in ['api', 'icap']:
-                items = files
+                items = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
+                if client == 'smtp':
+                    new_files = []
+                    while items:
+                        count = randint(1, 5)
+                        new_files.append(items[:count])
+                        items[:count] = []
+                    items = new_files
 
             for ind, item in enumerate(items):
                 if not self.condition(time(), start_time, self.duration):
                     break
                 try:
-                    logging.info(f'Отправка {"файла" if client is not "link" else "ссылки"} в {self.stand} по {client.upper()}.')
+                    logging.info(f'Отправка {"файла" if client != "link" else "ссылки"} в {self.stand} по {client.upper()}.')
                     func, port = self.clients[client]
                     func(stand=self.stand, token=self.x_auth_token, desc=self.description, item=item, port=port)
                     self.clear(item, client)
                     sleep(self.lag)
                 except Exception as e:
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}.\nСообщение об ошибке: {e}')
-                    shutil.rmtree(files_folder)
+                    # shutil.rmtree(files_folder)
                     return
-        shutil.rmtree(parent_folder)
+        if client != 'link':
+            shutil.rmtree(parent_folder)
 
 
     def run_load(self):
