@@ -3,6 +3,7 @@ import subprocess
 import shutil
 from random import randint
 from time import time, sleep, strftime, localtime
+from requests.exceptions import Timeout
 from threading import Thread
 from faker import Faker
 from api_client.api_client import file_send, link_send
@@ -15,7 +16,7 @@ warnings.filterwarnings("ignore")
 
 logging.getLogger().name = 'load'
 logging.basicConfig(
-    format='%(asctime)s -- %(threadName)s -- %(name)s -- %(message)s',
+    format='%(asctime)s -- %(threadName)-14s -- %(name)s -- %(message)s',
     level=logging.INFO,
     handlers=[
         logging.FileHandler('log_file.txt', mode='w'),
@@ -54,21 +55,25 @@ class Load:
 
     def generate_files(self, files_count=200, folder=None):
         full_path = os.path.join(self.root_dir, folder)
-        if not os.path.exists(full_path):
-            os.makedirs(full_path)
-            logging.info(f'Создание папки: {full_path}')
+        if os.path.exists(full_path):
+            logging.info(f'Удаление папки: {full_path}')
+            shutil.rmtree(full_path)
 
+        logging.info(f'Создание папки: {full_path}')
+        os.makedirs(full_path)
         subprocess.call(['python3', 'RandomFiles_12.py', 'docx,xlsx,pdf,sh,html', str(files_count), folder])
-        return os.path.join(self.root_dir, folder)
+        return full_path
 
-    def run_client(self, thread_name, client):
+    def take_client(self, thread_name, client):
         start_time = time()
         while self.condition(time(), start_time, self.duration):
             if client == 'link':
+                l_start_time = time()
                 items = [self.fake.image_url() for _ in range(50)]
+                print('Stage 1 finish:', time() - l_start_time)
             else:
                 parent_folder = os.path.join(f'{client}_client', thread_name)
-                files_folder = self.generate_files(files_count=int(50/self.threads), folder=parent_folder)
+                files_folder = self.generate_files(files_count=int(5/self.threads), folder=parent_folder)
                 items = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
                 if client == 'smtp':
                     new_files = []
@@ -79,27 +84,31 @@ class Load:
                     items = new_files
 
             for ind, item in enumerate(items):
+                l_start_time2 = time()
                 if not self.condition(time(), start_time, self.duration):
                     break
                 try:
-                    logging.info(f'Отправка {"файла" if client != "link" else "ссылки"} в {self.stand} по {client.upper()}.')
                     func, port = self.clients[client]
                     func(stand=self.stand, token=self.x_auth_token, desc=self.description, item=item, port=port)
+                    logging.info(f'Успешная отправка {"файла" if client != "link" else "ссылки"} в {self.stand} по {client.upper()}.')
                     self.clear(item, client)
                     sleep(self.lag)
+                except Timeout as e:
+                    logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}.\nСообщение об ошибке: {e}')
                 except Exception as e:
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}.\nСообщение об ошибке: {e}')
                     # shutil.rmtree(files_folder)
                     return
-        if client != 'link':
-            shutil.rmtree(parent_folder)
+                print(f'Iter {ind} finish:', time() - l_start_time2)
+        # if client != 'link':
+        #     shutil.rmtree(parent_folder)
 
 
-    def run_load(self):
+    def run(self):
         for i in range(self.threads):
             for tp in self.types:
                 thread_name = f'{tp.upper()}_Client_{i}'
-                new_thread = Thread(target=self.run_client, args=(thread_name, tp, ), name=thread_name)
+                new_thread = Thread(target=self.take_client, args=(thread_name, tp, ), name=thread_name)
                 new_thread.start()
 
 
@@ -114,4 +123,4 @@ if __name__ == '__main__':
     parser.add_argument('-types', help='Виды нагрузки', nargs='*', default=['api', 'icap', 'smtp', 'link'])
     args = parser.parse_args()
 
-    Load(args).run_load()
+    Load(args).run()

@@ -2,7 +2,7 @@ import json
 import requests
 
 def file_send(**kwargs):
-    payload = {'force': 'true', 'description': f'API-Load: {kwargs["desc"]}'}
+    payload = {'force': 'true', 'description': f'API-Load: {kwargs["desc"]}', 'StaticOnly': True}
     headers = {'X-Auth-Token': kwargs["token"]}
     data = {"file": open(kwargs['item'], 'rb')}
 
@@ -11,7 +11,9 @@ def file_send(**kwargs):
         verify=False,
         headers=headers,
         data=payload,
-        files=data)
+        files=data,
+		timeout=0.1
+	)
 
     return response.status_code
 
@@ -31,6 +33,7 @@ def link_send(**kwargs):
 		f'https://{kwargs["stand"]}/api/v1/link',
 		verify=False,
 		headers=headers,
-		data=json.dumps(payload)
+		data=json.dumps(payload),
+		timeout=0.1
 	)
 	return response.status_code
