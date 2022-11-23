@@ -1,7 +1,9 @@
+from itertools import count
 import os
 import subprocess
 import shutil
 from random import randint
+import threading
 from time import time, sleep, strftime, localtime
 from requests.exceptions import Timeout
 from threading import Thread
@@ -12,6 +14,7 @@ from smtp_client.smtp_client import smtp_client
 import warnings
 import logging
 import argparse
+from math import ceil, floor
 warnings.filterwarnings("ignore")
 
 logging.getLogger().name = 'load'
@@ -34,6 +37,7 @@ class Load:
         self.threads = args.th
         self.lag = args.lag
         self.types = args.types
+        self.static_only = args.static_only
         self.description = f'{strftime("%d-%m-%Y %H:%M", localtime())}'
         self.fake = Faker()
         self.clients = {
@@ -44,14 +48,12 @@ class Load:
         }
     
     @staticmethod
-    def clear(file, client):
-        if client == 'link':
-            return
-        if isinstance(file, list):
-            for f in file:
+    def clear(item):
+        if isinstance(item, list):
+            for f in item:
                 os.remove(f)
         else:
-            os.remove(file)
+            os.remove(item)
 
     def generate_files(self, files_count=200, folder=None):
         full_path = os.path.join(self.root_dir, folder)
@@ -68,12 +70,10 @@ class Load:
         start_time = time()
         while self.condition(time(), start_time, self.duration):
             if client == 'link':
-                l_start_time = time()
                 items = [self.fake.image_url() for _ in range(50)]
-                print('Stage 1 finish:', time() - l_start_time)
             else:
                 parent_folder = os.path.join(f'{client}_client', thread_name)
-                files_folder = self.generate_files(files_count=int(5/self.threads), folder=parent_folder)
+                files_folder = self.generate_files(files_count=int(20/self.threads), folder=parent_folder)
                 items = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
                 if client == 'smtp':
                     new_files = []
@@ -83,34 +83,34 @@ class Load:
                         items[:count] = []
                     items = new_files
 
-            for ind, item in enumerate(items):
-                l_start_time2 = time()
+            for item in items:
                 if not self.condition(time(), start_time, self.duration):
                     break
                 try:
                     func, port = self.clients[client]
-                    func(stand=self.stand, token=self.x_auth_token, desc=self.description, item=item, port=port)
-                    logging.info(f'Успешная отправка {"файла" if client != "link" else "ссылки"} в {self.stand} по {client.upper()}.')
-                    self.clear(item, client)
+                    func(stand=self.stand, token=self.x_auth_token, desc=self.description, item=item, port=port, static_only=self.static_only)
+                    logging.info(f'Успешная отправка {"файла" if client != "link" else "ссылки"} в {self.stand}.')
+                    self.clear(item) if client != 'link' else 0
                     sleep(self.lag)
                 except Timeout as e:
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}.\nСообщение об ошибке: {e}')
                 except Exception as e:
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}.\nСообщение об ошибке: {e}')
-                    # shutil.rmtree(files_folder)
+                    shutil.rmtree(files_folder)
                     return
-                print(f'Iter {ind} finish:', time() - l_start_time2)
-        # if client != 'link':
-        #     shutil.rmtree(parent_folder)
+        if client != 'link':
+            shutil.rmtree(files_folder)
 
-
-    def run(self):
+    def run(self):        
         for i in range(self.threads):
             for tp in self.types:
                 thread_name = f'{tp.upper()}_Client_{i}'
                 new_thread = Thread(target=self.take_client, args=(thread_name, tp, ), name=thread_name)
                 new_thread.start()
 
+
+        print('here 1:', threading.active_count())
+        print('here 2:', threading.enumerate())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -121,6 +121,7 @@ if __name__ == '__main__':
     parser.add_argument('-icap', help='Порт ICAP', type=int, default=1344)
     parser.add_argument('-lag', help='Задержка перед отправкой', type=int, default=0)
     parser.add_argument('-types', help='Виды нагрузки', nargs='*', default=['api', 'icap', 'smtp', 'link'])
+    parser.add_argument('-static_only', help='Только статика', default=True)
     args = parser.parse_args()
 
     Load(args).run()
