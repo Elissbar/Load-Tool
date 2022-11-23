@@ -101,27 +101,38 @@ class Load:
         if client != 'link':
             shutil.rmtree(files_folder)
 
-    def run(self):        
-        for i in range(self.threads):
-            for tp in self.types:
-                thread_name = f'{tp.upper()}_Client_{i}'
-                new_thread = Thread(target=self.take_client, args=(thread_name, tp, ), name=thread_name)
-                new_thread.start()
+    def run(self):
+        max_threads = os.cpu_count() + 4
+        client_threads_count = self.threads
+        if len(self.types) > 1:
+            if self.threads >= max_threads:
+                self.threads = max_threads
+            # client_threads_count = ceil(self.threads / len(self.types))
+        
+        total_count = self.threads * len(self.types)
+        print(f'Common count: {total_count}.\nClient threads count: {client_threads_count}')
+
+        
+        # for i in range(self.threads):
+        #     for tp in self.types:
+        #         thread_name = f'{tp.upper()}_Client_{i}'
+        #         new_thread = Thread(target=self.take_client, args=(thread_name, tp, ), name=thread_name)
+        #         new_thread.start()
 
 
-        print('here 1:', threading.active_count())
-        print('here 2:', threading.enumerate())
+        # print('here 1:', threading.active_count())
+        # print('here 2:', threading.enumerate())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', help='Адрес стенда', required=True)
     parser.add_argument('-t', help='X-Auth-Token', required=True)
     parser.add_argument('-d', help='Длительность нагрузки в минутах', default=False)
-    parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     parser.add_argument('-icap', help='Порт ICAP', type=int, default=1344)
     parser.add_argument('-lag', help='Задержка перед отправкой', type=int, default=0)
     parser.add_argument('-types', help='Виды нагрузки', nargs='*', default=['api', 'icap', 'smtp', 'link'])
     parser.add_argument('-static_only', help='Только статика', default=True)
+    parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     args = parser.parse_args()
 
     Load(args).run()
