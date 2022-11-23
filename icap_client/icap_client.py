@@ -27,18 +27,17 @@ content-disposition: attachment; filename="{FILENAME}"
 """.replace(b"\n", b"\r\n")
 
 
-def icap_client(stand, icap_port, desc, filename, host='192.192.192.192'):
-    global content
+def icap_client(content=content, host='192.192.192.192', **kwargs):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((stand, icap_port))
+    client_socket.connect((kwargs['stand'], kwargs['port']))
 
-    with open(filename, "rb") as f:
+    with open(kwargs['item'], "rb") as f:
         data = f.read()
         content = content.replace(b"{CONTENTLEN}", hex(len(data)).encode())
         
     content = content.replace(b"{CLIENTIP}", host.encode())
-    content = content.replace(b"{LINK}", f'/{desc}'.replace(':', '_').encode())
-    content = content.replace(b"{FILENAME}", os.path.basename(filename).encode())
+    content = content.replace(b"{LINK}", f'/{kwargs["desc"][-5:]}'.replace(':', '_').encode())
+    content = content.replace(b"{FILENAME}", os.path.basename(kwargs['item']).encode())
     content = content.replace(b"{CONTENT}", data)
     content = content.replace(b"{ContentLength}", str(len(content.rsplit(b"\r\n\r\n", 2)[1])).encode())
 

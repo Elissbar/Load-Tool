@@ -1,36 +1,46 @@
 import json
 import requests
 
-def file_send(stand, token, desc, file):
-    payload = {'force': 'true', 'description': f'API-Load: {desc}'}
-    headers = {'X-Auth-Token': token}
-    data = {"file": open(file, 'rb')}
+def file_send(**kwargs):
+    payload = {'force': 'true', 'description': f'API-Load: {kwargs["desc"]}', 'StaticOnly': kwargs["static_only"]}
+    headers = {'X-Auth-Token': kwargs["token"]}
+    data = {"file": open(kwargs['item'], 'rb')}
 
     response = requests.post(
-		f'https://{stand}/api/v1/submit/file',
-		verify=False,
-		headers=headers,
-		data=payload,
-		files=data)
+        f'https://{kwargs["stand"]}/api/v1/submit/file',
+        verify=False,
+        headers=headers,
+        data=payload,
+        files=data,
+		timeout=0.1
+	)
 
     return response.status_code
 
-def link_send(stand, token, desc, link):
+def link_send(**kwargs):
 	payload = {
 		"LinkData": {
-        	"Path": link
+        	"Path": kwargs['item']
     	},
 		"MessageData": {
 			"Force": True,
-			"Description": f'Link-Load: {desc}'
+			"Description": f'Link-Load: {kwargs["desc"]}'
+		},
+		"FormData": {
+			"Commands": [
+				"Redirects", "ML", "HeuristicAnalysis", "PatternVerdict", "DomainDb", "FastHash", 
+				"VT_Domain", "VT_URL", "DelayRedirect", "UrlAnalysis", "LogoDetection", 
+				"TextAnalysis", "ScreenSimilarity"
+			]
 		}
 	}
-	headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
+	headers = {'X-Auth-Token': kwargs["token"], 'Content-Type': 'application/json'}
 
 	response = requests.post(
-		f'https://{stand}/api/v1/link',
+		f'https://{kwargs["stand"]}/api/v1/link',
 		verify=False,
 		headers=headers,
-		data=json.dumps(payload)
+		data=json.dumps(payload),
+		timeout=0.1
 	)
 	return response.status_code
