@@ -102,26 +102,28 @@ class Load:
             shutil.rmtree(files_folder)
 
     def run(self):
-        max_threads = os.cpu_count() + 4
-        client_threads_count = self.threads
-        if len(self.types) > 1:
-            if self.threads >= max_threads:
-                self.threads = max_threads
-            # client_threads_count = ceil(self.threads / len(self.types))
+        """
+        Параметр th - указывает кол-во потоков для каждого источника ['api', 'icap', 'smtp', 'link']
+        (Например: th = 11, источники указаны все ['api', 'icap', 'smtp', 'link'], общее кол-во потоков будет 11 * 4 = 44)
+
+        Если общее кол-во потоков (th * кол-во источников) > максимального кол-ва потоков на процессоре,
+        кол-во потоков для каждого источника будет расчитано так: максимальное кол-во потоков / кол-во источников
+        """
+        max_threads = min(32, os.cpu_count() + 4)
+        logging.warning(f'Максимальное кол-во потоков {max_threads}')
         
-        total_count = self.threads * len(self.types)
-        print(f'Common count: {total_count}.\nClient threads count: {client_threads_count}')
-
+        client_threads_count = self.threads # Кол-во потоков для каждого клиента
+        total_count_threads = self.threads * len(self.types)
+        if total_count_threads > max_threads:
+            total_count_threads = max_threads
+            client_threads_count = int(max_threads / len(self.types)) # Кол-во потоков для каждого клиента, если общее кол-во потоков больше максимального
+        logging.warning(f'Кол-во потоков для каждого источника: {client_threads_count}')
         
-        # for i in range(self.threads):
-        #     for tp in self.types:
-        #         thread_name = f'{tp.upper()}_Client_{i}'
-        #         new_thread = Thread(target=self.take_client, args=(thread_name, tp, ), name=thread_name)
-        #         new_thread.start()
-
-
-        # print('here 1:', threading.active_count())
-        # print('here 2:', threading.enumerate())
+        for i in range(client_threads_count):
+            for tp in self.types:
+                thread_name = f'{tp.upper()}_Client_{i}'
+                new_thread = Thread(target=self.take_client, args=(thread_name, tp, ), name=thread_name)
+                new_thread.start()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -135,4 +137,9 @@ if __name__ == '__main__':
     parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     args = parser.parse_args()
 
-    Load(args).run()
+    sources = args.types
+    for source in sources:
+        if source not in ['api', 'icap', 'smtp', 'link']:
+            raise argparse.ArgumentError(None, f"Указан неверный источник: {source}. Возможные значения: {'[api, icap, smtp, link]'}")
+    
+    # Load(args).run()
