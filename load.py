@@ -143,8 +143,7 @@ if __name__ == '__main__':
     parser.add_argument('-th', help='Кол-во потоков', type=int, default=1)
     args = parser.parse_args()
 
-    sources = args.types
-    for source in sources:
+    for source in args.types:
         if source not in ['api', 'icap', 'smtp', 'link']:
             raise argparse.ArgumentError(None, f"Указан неверный источник: {source}. Возможные значения: {'[api, icap, smtp, link]'}")
         if source in ['api', 'link'] and not args.t:
