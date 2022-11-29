@@ -12,7 +12,7 @@ fake = Faker()
 
 def smtp_client(**kwargs):
     server = smtplib.SMTP(kwargs["stand"], kwargs["port"])
-    links = [fake.url() for _ in range(random.randint(2, 7))]
+    links = [fake.image_url() for _ in range(random.randint(2, 7))]
 
     msg = MIMEMultipart()
     msg['From'] = 'smtp_load@avsw.ru'
