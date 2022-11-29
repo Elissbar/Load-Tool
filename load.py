@@ -99,6 +99,7 @@ class Load:
                     sleep(self.lag)
                 except Timeout as e:
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}. Порт: {port}.\nСообщение об ошибке: {e}')
+                    sleep(self.lag)
                 except Exception as e:
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}. Порт: {port}.\nСообщение об ошибке: {e}')
                     shutil.rmtree(files_folder)
