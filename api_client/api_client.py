@@ -12,7 +12,7 @@ def file_send(**kwargs):
         headers=headers,
         data=payload,
         files=data,
-		timeout=0.1
+		timeout=0.5
 	)
 
     return response.status_code
@@ -41,6 +41,6 @@ def link_send(**kwargs):
 		verify=False,
 		headers=headers,
 		data=json.dumps(payload),
-		timeout=0.1
+		timeout=0.5
 	)
 	return response.status_code

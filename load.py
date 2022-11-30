@@ -9,9 +9,9 @@ from faker import Faker
 from api_client.api_client import file_send, link_send
 from icap_client.icap_client import icap_client
 from smtp_client.smtp_client import smtp_client
-import warnings
 import logging
 import argparse
+import warnings
 warnings.filterwarnings("ignore")
 
 logging.getLogger().name = 'load'
@@ -19,7 +19,7 @@ logging.basicConfig(
     format='%(asctime)s -- %(threadName)-14s -- %(name)s -- %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler('log_file.txt', mode='w'),
+        logging.FileHandler('log_file.txt', mode='w', encoding='utf-8'),
     ]
 )
 
@@ -45,14 +45,14 @@ class Load:
         }
     
     @staticmethod
-    def clear(item):
+    def clear(item): # Удаление файлов
         if isinstance(item, list):
             for f in item:
                 os.remove(f)
         else:
             os.remove(item)
 
-    def generate_files(self, files_count=200, folder=None):
+    def generate_files(self, files_count=200, folder=None): # Генерация файлов
         full_path = os.path.join(self.root_dir, folder)
         if os.path.exists(full_path):
             logging.info(f'Удаление папки: {full_path}')
@@ -65,14 +65,17 @@ class Load:
 
 
     def take_client(self, thread_name, client):
-        start_time = time()
+        start_time = time() # Начало нагрузки
         while self.condition(time(), start_time, self.duration):
             if client == 'link':
                 items = [self.fake.image_url() for _ in range(50)]
             else:
+                # Полный путь до папки с файлами (название папки клиента + название потока)
                 parent_folder = os.path.join(f'{client}_client', thread_name)
                 files_folder = self.generate_files(files_count=int(20/self.threads), folder=parent_folder)
                 items = [os.path.join(files_folder, file) for file in os.listdir(files_folder)]
+
+                 # Если отправка по почте, делаем из массива с файлами - массив с массивами (внутри которых файлы)
                 if client == 'smtp':
                     new_files = []
                     while items:
@@ -82,6 +85,7 @@ class Load:
                     items = new_files
 
             for item in items:
+                # Если время вышло, останавливаем отправку
                 if not self.condition(time(), start_time, self.duration):
                     break
                 try:
@@ -97,15 +101,16 @@ class Load:
                     logging.info(f'Успешная отправка {"файла" if client != "link" else "ссылки"} в {self.stand}.')
                     self.clear(item) if client != 'link' else 0
                     sleep(self.lag)
-                except Timeout as e:
+                except Timeout as e: # В случае тайм-аута отправка продолжится
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}. Порт: {port}.\nСообщение об ошибке: {e}')
                     sleep(self.lag)
-                except Exception as e:
+                except Exception as e: # В случае других ошибок (ConnectionRefused скорее всего) поток прекращает работу
                     logging.error(f'Ошибка при отправке по {client.upper()}. Стенд: {self.stand}. Порт: {port}.\nСообщение об ошибке: {e}')
                     shutil.rmtree(files_folder)
                     return
         if client != 'link':
             shutil.rmtree(files_folder)
+        return
 
     def run(self):
         """
@@ -115,7 +120,7 @@ class Load:
         Если общее кол-во потоков (th * кол-во источников) > максимального кол-ва потоков на процессоре,
         кол-во потоков для каждого источника будет расчитано так: максимальное кол-во потоков / кол-во источников
         """
-        max_threads = min(32, os.cpu_count() + 4)
+        max_threads = os.cpu_count() + 4
         logging.warning(f'Максимальное кол-во потоков {max_threads}')
         
         client_threads_count = self.threads # Кол-во потоков для каждого клиента
@@ -135,7 +140,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', help='Адрес стенда', required=True)
     parser.add_argument('-t', help='X-Auth-Token', default=None)
-    parser.add_argument('-d', help='Длительность нагрузки в минутах', default=False)
+    parser.add_argument('-d', help='Длительность нагрузки в минутах', default=0)
     parser.add_argument('-icap_port', help='Порт ICAP', type=int, default=1344)
     parser.add_argument('-smtp_port', help='Порт SMTP', type=int, default=25)
     parser.add_argument('-lag', help='Задержка перед отправкой', type=int, default=0)
