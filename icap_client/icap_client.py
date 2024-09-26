@@ -1,15 +1,15 @@
 import socket
 import os
 
-content = b"""RESPMOD icap://athena.local/respmod ICAP/1.0
-Host: 10.10.64.102
+content = b"""RESPMOD icap:// ICAP/1.0
+Host: 
 Encapsulated: req-hdr=0, res-hdr=137, res-body=296
 X-client-IP: {CLIENTIP}
 user-agent: C-ICAP-Client-Library/0.5.9
 preview: 10240
 
 GET {LINK} HTTP/1.1
-Host: 10.10.64.102
+Host: 
 Accept: text/html, text/plain, image/gif
 Accept-Encoding: gzip, compress
 
