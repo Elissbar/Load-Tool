@@ -2,12 +2,12 @@ import json
 import requests
 
 def file_send(**kwargs):
-    payload = {'force': 'true', 'description': f'API-Load: {kwargs["desc"]}', 'StaticOnly': kwargs["static_only"]}
+    payload = {'force': 'true', 'description': f'API-Load: {kwargs["desc"]}'}
     headers = {'X-Auth-Token': kwargs["token"]}
     data = {"file": open(kwargs['item'], 'rb')}
 
     response = requests.post(
-        f'https://{kwargs["stand"]}/api/v1/submit/file',
+        f'https://{kwargs["stand"]}/',
         verify=False,
         headers=headers,
         data=payload,
@@ -26,18 +26,11 @@ def link_send(**kwargs):
 			"Force": True,
 			"Description": f'Link-Load: {kwargs["desc"]}'
 		},
-		"FormData": {
-			"Commands": [
-				"Redirects", "ML", "HeuristicAnalysis", "PatternVerdict", "DomainDb", "FastHash", 
-				"VT_Domain", "VT_URL", "DelayRedirect", "UrlAnalysis", "LogoDetection", 
-				"TextAnalysis", "ScreenSimilarity"
-			]
-		}
 	}
 	headers = {'X-Auth-Token': kwargs["token"], 'Content-Type': 'application/json'}
 
 	response = requests.post(
-		f'https://{kwargs["stand"]}/api/v1/link',
+		f'https://{kwargs["stand"]}/',
 		verify=False,
 		headers=headers,
 		data=json.dumps(payload),
