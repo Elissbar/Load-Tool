@@ -15,8 +15,8 @@ def smtp_client(**kwargs):
     links = [fake.image_url() for _ in range(random.randint(2, 7))]
 
     msg = MIMEMultipart()
-    msg['From'] = 'smtp_load@avsw.ru'
-    msg['To'] = 'receiver@avsw.ru'
+    msg['From'] = 'smtp_load@tmp.ru'
+    msg['To'] = 'receiver@tmp.ru'
     msg['Subject'] = f'SMTP-Load: {kwargs["desc"]}'
     msg['Message-ID'] = make_msgid()
     msg.attach(MIMEText('\n'.join(links)))
